@@ -1,20 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0D0F12">
+    android:background="#0D0F12"
+    android:fillViewport="true">
 
-    <WebView
-        android:id="@+id/webview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <TextView
-        android:id="@+id/error"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="24dp"
-        android:textColor="#FF5D6C"
-        android:textSize="15sp"
-        android:visibility="gone" />
-</FrameLayout>
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Trade Bot"
+            android:textColor="#E6E9EE"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Testnet"
+            android:textColor="#7C8594"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="GITHUB TOKEN"
+            android:textColor="#7C8594"
+            android:textSize="11sp" />
+
+        <EditText
+            android:id="@+id/token"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="ghp_... (sadece bu repo için)"
+            android:inputType="textPassword"
+            android:textColor="#E6E9EE"
+            android:textColorHint="#4A5160" />
+
+        <Button
+            android:id="@+id/saveToken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Token'ı kaydet" />
+
+        <Button
+            android:id="@+id/runBot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Botu çalıştır (20 dk)"
+            android:textColor="#A8FF3E" />
+
+        <Button
+            android:id="@+id/refresh"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Son durumu yenile" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textColor="#E6E9EE"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Bot her çalıştırmada birkaç dakika çalışır ve durur. Açık pozisyonlar bot çalışmıyorken korunmaz. Bu sadece testnet içindir."
+            android:textColor="#7C8594"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

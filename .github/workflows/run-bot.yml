@@ -1,0 +1,60 @@
+name: Run bot (testnet)
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "Kaç dakika çalışsın"
+        required: false
+        default: "20"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trade-bot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      BOT_ENV: testnet
+      BINANCE_TESTNET_API_KEY: ${{ secrets.BINANCE_TESTNET_API_KEY }}
+      BINANCE_TESTNET_API_SECRET: ${{ secrets.BINANCE_TESTNET_API_SECRET }}
+      SYMBOL: ${{ vars.SYMBOL || 'BTCUSDT' }}
+      DRY_RUN: ${{ vars.DRY_RUN || 'true' }}
+      MAX_ORDER_USDT: ${{ vars.MAX_ORDER_USDT || '20' }}
+      MAX_DAILY_LOSS_USDT: ${{ vars.MAX_DAILY_LOSS_USDT || '10' }}
+      MAX_POSITION_USDT: ${{ vars.MAX_POSITION_USDT || '50' }}
+      POLL_SECONDS: "60"
+      DB_PATH: data/ledger.sqlite
+      KILL_SWITCH_FILE: data/KILL
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Run for N minutes
+        run: |
+          set +e
+          timeout "${{ inputs.minutes }}m" python -m bot.main
+          code=$?
+          # 124 = süre doldu, bu normal bitiş
+          if [ "$code" -ne 124 ] && [ "$code" -ne 0 ]; then exit "$code"; fi
+
+      - name: Persist ledger and status
+        run: |
+          git config user.name "trade-bot"
+          git config user.email "trade-bot@users.noreply.github.com"
+          git add -f data/ledger.sqlite data/status.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "bot: state update (${{ github.run_id }})"
+            git push
+          fi

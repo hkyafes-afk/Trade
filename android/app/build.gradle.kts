@@ -11,10 +11,10 @@ android {
         applicationId = "com.tradebot.panel"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
-        // Panelin adresi. Termux'taki bot ve panel aynı telefonda çalışıyorsa bu değer doğrudur.
-        buildConfigField("String", "PANEL_URL", "\"http://127.0.0.1:8787/\"")
+        versionCode = 2
+        versionName = "0.2.0"
+        buildConfigField("String", "REPO_OWNER", "\"hkyafes-afk\"")
+        buildConfigField("String", "REPO_NAME", "\"Trade\"")
     }
 
     buildFeatures {
