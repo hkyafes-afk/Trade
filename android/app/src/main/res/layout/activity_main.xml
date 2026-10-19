@@ -57,7 +57,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Botu çalıştır (20 dk)"
+            android:text="Botu çalıştır (5,5 saat)"
             android:textColor="#A8FF3E" />
 
         <Button

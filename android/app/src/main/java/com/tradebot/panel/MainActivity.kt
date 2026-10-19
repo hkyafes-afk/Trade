@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         val t = token() ?: return toast("Önce token'ı kaydet")
         Thread {
             try {
-                val body = JSONObject().put("ref", "main").put("inputs", JSONObject().put("minutes", "20"))
+                val body = JSONObject().put("ref", "main").put("inputs", JSONObject().put("minutes", "330"))
                 val code = request("POST", "$api/actions/workflows/$workflow/dispatches", t, body.toString())
                 runOnUiThread {
                     if (code == 204) {
