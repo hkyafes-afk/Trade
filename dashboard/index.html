@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trade Bot Panel</title>
+<style>
+  :root { --bg:#0d0f12; --card:#15181d; --line:#232830; --txt:#e6e9ee; --mut:#7c8594;
+          --green:#a8ff3e; --red:#ff5d6c; --amber:#ffb84d; --blue:#4da3ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:14px/1.4 system-ui,sans-serif; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; }
+  h1 { font-size:20px; margin:0; }
+  .mode { font-size:12px; padding:4px 8px; border-radius:6px; border:1px solid var(--line); color:var(--mut); }
+  .mode.live { color:var(--green); border-color:var(--green); }
+  .mode.halt { color:var(--red); border-color:var(--red); }
+  .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; padding:0 16px; }
+  @media (min-width:700px){ .stats{ grid-template-columns:repeat(4,1fr);} }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px; }
+  .label { font-size:11px; letter-spacing:.06em; color:var(--mut); text-transform:uppercase; }
+  .value { font-size:20px; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums; }
+  .pos { color:var(--green); } .neg { color:var(--red); }
+  section { padding:12px 16px 0; }
+  h2 { font-size:12px; letter-spacing:.08em; color:var(--mut); margin:0 0 8px; text-transform:uppercase; }
+  .agents { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  @media (min-width:700px){ .agents{ grid-template-columns:repeat(3,1fr);} }
+  .agent .top { display:flex; justify-content:space-between; font-size:11px; color:var(--mut); }
+  .agent .name { font-weight:700; font-size:15px; margin-top:6px; }
+  .agent .detail { font-size:12px; color:var(--mut); margin-top:4px; min-height:32px; }
+  .tag { font-size:11px; padding:1px 6px; border-radius:4px; }
+  .tag.idle { color:var(--mut); } .tag.run { color:var(--green); } .tag.block { color:var(--red); } .tag.warn { color:var(--amber); }
+  #chart { width:100%; height:160px; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); }
+  th { color:var(--mut); font-weight:500; }
+  .wrap { overflow-x:auto; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:4px 8px; }
+  .controls { display:flex; gap:8px; padding:12px 16px 24px; }
+  button { flex:1; padding:12px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--txt); font-weight:600; cursor:pointer; }
+  button.kill { border-color:var(--red); color:var(--red); }
+  .err { margin:8px 16px 0; color:var(--red); font-size:12px; }
+  .note { padding:12px 16px 24px; color:var(--mut); font-size:11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Trade Bot</h1>
+  <span id="mode" class="mode">—</span>
+</header>
+<div id="err" class="err"></div>
+
+<div class="stats">
+  <div class="card"><div class="label">Sembol</div><div class="value" id="sym">—</div></div>
+  <div class="card"><div class="label">Son fiyat</div><div class="value" id="price">—</div></div>
+  <div class="card"><div class="label">Açık pozisyon</div><div class="value" id="pos">—</div></div>
+  <div class="card"><div class="label">Toplam K/Z</div><div class="value" id="pnl">—</div></div>
+</div>
+
+<section>
+  <h2>Kâr/Zarar (gerçekleşen)</h2>
+  <canvas id="chart"></canvas>
+</section>
+
+<section>
+  <h2>Ajanlar</h2>
+  <div class="agents" id="agents"></div>
+</section>
+
+<section>
+  <h2>Son işlemler</h2>
+  <div class="wrap">
+    <table>
+      <thead><tr><th>Zaman</th><th>Taraf</th><th>Fiyat</th><th>USDT</th><th>K/Z</th><th>Mod</th></tr></thead>
+      <tbody id="trades"></tbody>
+    </table>
+  </div>
+</section>
+
+<div class="controls">
+  <button class="kill" id="killBtn">Durdur (kill switch)</button>
+  <button id="resumeBtn">Devam et</button>
+</div>
+<div class="note">Bu panel sadece bot'un kayıtlarını gösterir. Emir göndermez. Gösterilen tüm rakamlar bot'un defterinden gelir.</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = (n, d=2) => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString("tr-TR", {maximumFractionDigits:d, minimumFractionDigits:d});
+
+function agentCards(s) {
+  const risk = s.risk || {};
+  const halted = risk.state === "HALTED";
+  const blocked = risk.state === "BLOCKED";
+  const sig = s.signal || "HOLD";
+  return [
+    { n:"01 · SCAN", t: sig === "HOLD" ? "idle" : "run", tl: sig, d: s.signal_reason || "Piyasa taranıyor" },
+    { n:"02 · VET",  t: "idle", tl: "IDLE", d: "Sinyal doğrulama (kural tabanlı)" },
+    { n:"03 · SIZE", t: "idle", tl: s.last_action ? "SON" : "IDLE", d: s.last_action || "Pozisyon boyu: sabit tutar" },
+    { n:"04 · RISK", t: halted ? "block" : blocked ? "warn" : "run", tl: risk.state || "ACTIVE", d: risk.reason || "Limitler içinde" },
+    { n:"05 · FILLS",t: "idle", tl: "IDLE", d: "Emir gerçekleşme takibi" },
+    { n:"06 · BOOK", t: s.last_error ? "block" : "run", tl: s.last_error ? "HATA" : "OK", d: s.last_error || "Defter güncel" },
+  ];
+}
+
+function drawChart(series) {
+  const c = $("chart"), dpr = devicePixelRatio || 1;
+  c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr;
+  const g = c.getContext("2d"); g.scale(dpr, dpr);
+  const W = c.clientWidth, H = c.clientHeight;
+  g.clearRect(0,0,W,H);
+  g.strokeStyle = "#232830"; g.beginPath(); g.moveTo(0,H/2); g.lineTo(W,H/2); g.stroke();
+  if (!series.length) { g.fillStyle="#7c8594"; g.font="12px system-ui"; g.fillText("Henüz gerçekleşen işlem yok", 12, H/2 - 6); return; }
+  const vals = series.map(p => p.cum_pnl);
+  const min = Math.min(0, ...vals), max = Math.max(0, ...vals);
+  const span = (max - min) || 1;
+  const x = i => series.length === 1 ? W/2 : (i/(series.length-1))*(W-8)+4;
+  const y = v => H - 8 - ((v - min)/span)*(H-16);
+  g.strokeStyle = "#7c8594"; g.setLineDash([4,4]); g.beginPath(); g.moveTo(0,y(0)); g.lineTo(W,y(0)); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = vals[vals.length-1] >= 0 ? "#a8ff3e" : "#ff5d6c"; g.lineWidth = 2; g.beginPath();
+  vals.forEach((v,i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v))); g.stroke();
+}
+
+async function refresh() {
+  try {
+    const r = await fetch("/api/state", {cache:"no-store"});
+    const d = await r.json();
+    const s = d.status || {};
+    $("err").textContent = s.updated ? "" : "status.json bulunamadı. Bot çalışıyor mu?";
+
+    const halted = (s.risk||{}).state === "HALTED";
+    const m = $("mode");
+    m.textContent = halted ? "DURDURULDU" : "AKTİF";
+    m.className = "mode " + (halted ? "halt" : "live");
+
+    $("sym").textContent = (d.trades[0] && d.trades[0].symbol) || "—";
+    $("price").textContent = fmt(s.price, 2);
+    $("pos").textContent = s.in_position ? fmt(s.position_qty, 6) : "Yok";
+
+    const total = d.pnl_series.length ? d.pnl_series[d.pnl_series.length-1].cum_pnl : 0;
+    const pe = $("pnl"); pe.textContent = fmt(total, 2) + " USDT";
+    pe.className = "value " + (total >= 0 ? "pos" : "neg");
+
+    $("agents").innerHTML = agentCards(s).map(a =>
+      `<div class="card agent"><div class="top"><span>${a.n.slice(0,2)}</span><span class="tag ${a.t}">${a.tl}</span></div>
+       <div class="name">${a.n.slice(5)}</div><div class="detail">${a.d}</div></div>`).join("");
+
+    $("trades").innerHTML = d.trades.map(t => {
+      const pnl = t.realized_pnl;
+      return `<tr><td>${t.ts.slice(5,19).replace("T"," ")}</td><td>${t.side}</td><td>${fmt(t.price,2)}</td>
+        <td>${fmt(t.quote_usdt,2)}</td><td class="${pnl>0?'pos':pnl<0?'neg':''}">${pnl ? fmt(pnl,4) : "—"}</td><td>${t.mode}</td></tr>`;
+    }).join("") || `<tr><td colspan="6" style="color:var(--mut)">Henüz işlem yok</td></tr>`;
+
+    drawChart(d.pnl_series);
+  } catch (e) {
+    $("err").textContent = "Sunucuya bağlanılamadı: " + e.message;
+  }
+}
+
+async function post(path) {
+  await fetch(path, {method:"POST"});
+  refresh();
+}
+$("killBtn").onclick = () => { if (confirm("Yeni alımlar durdurulsun mu?")) post("/api/kill"); };
+$("resumeBtn").onclick = () => { if (confirm("Alımlar tekrar açılsın mı?")) post("/api/resume"); };
+
+refresh();
+setInterval(refresh, 5000);
+addEventListener("resize", refresh);
+</script>
+</body>
+</html>
