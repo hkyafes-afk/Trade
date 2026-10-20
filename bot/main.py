@@ -105,6 +105,12 @@ def main():
         except Exception as e:
             log.exception("Döngü hatası, bir sonraki turda tekrar denenecek")
             STATUS["last_error"] = str(e)[:300]
+            # Konum engeli kalıcıdır, tekrar denemek kotayı boşa harcar. Hemen dur.
+            if "451" in str(e) or "restricted location" in str(e):
+                STATUS["updated"] = datetime.now(timezone.utc).isoformat()
+                status_file.write_text(json.dumps(STATUS, ensure_ascii=False, indent=2))
+                log.error("Binance bu konumu engelliyor (451). Bot durduruluyor.")
+                raise SystemExit(2)
         STATUS["updated"] = datetime.now(timezone.utc).isoformat()
         STATUS["trades"] = ledger.recent_trades(30)
         STATUS["pnl_series"] = ledger.pnl_series()
