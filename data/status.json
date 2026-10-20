@@ -1,0 +1,14 @@
+{
+  "updated": "2026-10-20T00:01:47.626539+00:00",
+  "price": null,
+  "in_position": false,
+  "position_qty": 0.0,
+  "signal": "HOLD",
+  "signal_reason": "",
+  "last_action": null,
+  "risk": {
+    "state": "ACTIVE",
+    "reason": ""
+  },
+  "last_error": "451 /api/v3/klines: {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error.\"\n}"
+}
