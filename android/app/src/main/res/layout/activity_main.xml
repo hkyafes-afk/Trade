@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="10dp"
+        android:padding="8dp"
         android:background="#0F1319">
 
         <LinearLayout
@@ -28,9 +28,9 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="5,5 saat çalıştır"
+                android:text="5,5 saat"
                 android:textColor="#A8FF3E"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
 
             <Button
                 android:id="@+id/testRun"
@@ -38,23 +38,66 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="1 dk test"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
+
+            <Button
+                android:id="@+id/testnet"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Testnet çek"
+                android:textColor="#4DA3FF"
+                android:textSize="11sp" />
 
             <Button
                 android:id="@+id/demo"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Demo (sahte)"
-                android:textSize="12sp" />
+                android:text="Demo"
+                android:textSize="11sp" />
 
             <Button
                 android:id="@+id/refresh"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Yenile"
+                android:text="GitHub"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/tkey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Testnet API Key"
+            android:textColor="#E8ECF2"
+            android:textColorHint="#4A5160"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/tsec"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Testnet Secret"
+                android:inputType="textPassword"
+                android:textColor="#E8ECF2"
+                android:textColorHint="#4A5160"
                 android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/saveTestnet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kaydet"
+                android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -79,7 +122,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Kaydet"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
