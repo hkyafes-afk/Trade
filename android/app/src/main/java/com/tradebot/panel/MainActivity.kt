@@ -1,10 +1,12 @@
 package com.tradebot.panel
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Base64
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONArray
@@ -13,7 +15,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Botu GitHub Actions üzerinden başlatır, çalışma durumunu ve bot verisini gösterir.
+ * Paneli gösterir. Bot verisi GitHub'daki data/status.json dosyasından okunur.
  * Binance anahtarı telefonda tutulmaz; anahtarlar GitHub'ın gizli değişkenlerindedir.
  */
 class MainActivity : AppCompatActivity() {
@@ -22,19 +24,27 @@ class MainActivity : AppCompatActivity() {
     private val api = "https://api.github.com/repos/${BuildConfig.REPO_OWNER}/${BuildConfig.REPO_NAME}"
     private val workflow = "run-bot.yml"
 
+    private lateinit var web: WebView
     private lateinit var tokenInput: EditText
-    private lateinit var runState: TextView
-    private lateinit var runDetail: TextView
-    private lateinit var botData: TextView
+    private var pageReady = false
+    private var pending: String? = null
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        web = findViewById(R.id.dash)
         tokenInput = findViewById(R.id.token)
-        runState = findViewById(R.id.runState)
-        runDetail = findViewById(R.id.runDetail)
-        botData = findViewById(R.id.botData)
+        web.settings.javaScriptEnabled = true
+        web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                pageReady = true
+                pending?.let { push(it) }
+                pending = null
+            }
+        }
+        web.loadUrl("file:///android_asset/dashboard.html")
 
         tokenInput.setText(prefs.getString("token", ""))
 
@@ -56,9 +66,7 @@ class MainActivity : AppCompatActivity() {
         val t = token() ?: return toast("Önce token'ı kaydet")
         Thread {
             try {
-                // Zaten aktif bir çalışma varsa yenisini başlatma, çift çalışma olmasın.
-                val active = activeRun(t)
-                if (active != null) {
+                if (activeRun(t) != null) {
                     runOnUiThread { toast("Zaten bir çalışma var, onu bekle") }
                     return@Thread
                 }
@@ -80,44 +88,39 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refresh() {
-        val t = token()
-        if (t == null) {
-            runState.text = "Token kaydedilmedi"
-            runDetail.text = "Önce GitHub token'ını gir ve kaydet."
-            return
-        }
+        val t = token() ?: return
         Thread {
-            var state = ""
-            var detail = ""
-            var data = ""
+            val payload = JSONObject()
             try {
                 val runs = JSONObject(get("$api/actions/workflows/$workflow/runs?per_page=5", t))
                     .getJSONArray("workflow_runs")
                 val run = pickRun(runs)
+                val runInfo = JSONObject()
                 if (run == null) {
-                    state = "Henüz çalışma yok"
+                    runInfo.put("state", "Henüz çalışma yok")
                 } else {
-                    state = describe(run.optString("status"), run.optString("conclusion"))
-                    detail = "Başlangıç: ${run.optString("run_started_at")}\n${run.optString("html_url")}"
+                    runInfo.put("state", describe(run.optString("status"), run.optString("conclusion")))
+                    runInfo.put("detail", "Başlangıç: ${run.optString("run_started_at")}")
                 }
+                payload.put("run", runInfo)
             } catch (e: Exception) {
-                state = "Durum alınamadı"
-                detail = e.message ?: ""
+                payload.put("run", JSONObject().put("state", "Durum alınamadı").put("detail", e.message ?: ""))
             }
             try {
-                data = formatBotData(readStatusFile(t))
+                payload.put("status", readStatusFile(t))
             } catch (e: Exception) {
-                data = "Henüz veri yok. Bot bir çalışmayı bitirince burada görünür."
+                payload.put("status", JSONObject())
             }
-            val s = state
-            val d = detail
-            val b = data
-            runOnUiThread {
-                runState.text = s
-                runDetail.text = d
-                botData.text = b
-            }
+            runOnUiThread { push(payload.toString()) }
         }.start()
+    }
+
+    private fun push(json: String) {
+        if (!pageReady) {
+            pending = json
+            return
+        }
+        web.evaluateJavascript("window.render($json);", null)
     }
 
     /** Aktif (çalışan ya da sırada bekleyen) ilk çalışmayı döndürür, yoksa null. */
@@ -151,24 +154,11 @@ class MainActivity : AppCompatActivity() {
         else -> status
     }
 
-    /** Bot her çalışma sonunda data/status.json dosyasını repoya yazar. */
+    /** Bot her döngüde data/status.json dosyasını repoya yazar (çalışma sonunda). */
     private fun readStatusFile(token: String): JSONObject {
         val file = JSONObject(get("$api/contents/data/status.json", token))
         val raw = file.getString("content").replace("\n", "")
         return JSONObject(String(Base64.decode(raw, Base64.DEFAULT)))
-    }
-
-    private fun formatBotData(s: JSONObject): String {
-        val risk = s.optJSONObject("risk")?.optString("state") ?: "-"
-        val inPos = s.optBoolean("in_position", false)
-        val pos = if (inPos) "Var (${s.optDouble("position_qty")})" else "Yok"
-        val err = s.optString("last_error", "")
-        return "Son fiyat: ${s.optDouble("price")}\n" +
-                "Açık pozisyon: $pos\n" +
-                "Son sinyal: ${s.optString("signal")} (${s.optString("signal_reason")})\n" +
-                "Risk durumu: $risk\n" +
-                "Son hata: ${if (err.isBlank() || err == "null") "yok" else err}\n" +
-                "Güncelleme: ${s.optString("updated")}"
     }
 
     private fun get(url: String, token: String): String {

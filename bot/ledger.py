@@ -60,3 +60,24 @@ class Ledger:
     def position_value_usdt(self, symbol, price: float) -> float:
         qty, _ = self.open_position(symbol)
         return qty * price
+
+    def recent_trades(self, limit: int = 30) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT ts, symbol, side, price, quote_usdt, realized_pnl, mode FROM trades ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [
+            {"ts": r[0], "symbol": r[1], "side": r[2], "price": r[3],
+             "quote_usdt": r[4], "realized_pnl": r[5], "mode": r[6]}
+            for r in rows
+        ]
+
+    def pnl_series(self) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT ts, realized_pnl FROM trades WHERE realized_pnl != 0 ORDER BY id"
+        ).fetchall()
+        cum, out = 0.0, []
+        for ts, pnl in rows:
+            cum += pnl
+            out.append({"ts": ts, "cum_pnl": round(cum, 4)})
+        return out

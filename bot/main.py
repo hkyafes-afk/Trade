@@ -101,6 +101,12 @@ def main():
             log.exception("Döngü hatası, bir sonraki turda tekrar denenecek")
             STATUS["last_error"] = str(e)[:300]
         STATUS["updated"] = datetime.now(timezone.utc).isoformat()
+        STATUS["trades"] = ledger.recent_trades(30)
+        STATUS["pnl_series"] = ledger.pnl_series()
+        try:
+            STATUS["balance_usdt"] = round(client.balance("USDT"), 2)
+        except Exception:
+            STATUS["balance_usdt"] = None
         STATUS["risk"]["state"] = "HALTED" if s.kill_switch_file.exists() else STATUS["risk"]["state"]
         status_file.write_text(json.dumps(STATUS, ensure_ascii=False, indent=2))
         time.sleep(s.poll_seconds)

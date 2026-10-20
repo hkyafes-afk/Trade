@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Trade Bot</title>
+<style>
+  :root { --bg:#07090c; --card:#0f1319; --card2:#131922; --line:#1d2430; --txt:#e8ecf2;
+          --mut:#6b7686; --green:#a8ff3e; --red:#ff5d6c; --amber:#ffb84d; --blue:#4da3ff; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; background:var(--bg); color:var(--txt); font:14px/1.45 system-ui,-apple-system,sans-serif; }
+  body { padding:12px 12px 24px; }
+  .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .brand { font-weight:800; font-size:18px; letter-spacing:.02em; }
+  .pill { font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px; border:1px solid var(--line); color:var(--mut); letter-spacing:.06em; }
+  .pill.run { color:var(--green); border-color:var(--green); box-shadow:0 0 12px rgba(168,255,62,.25); }
+  .pill.bad { color:var(--red); border-color:var(--red); }
+  .pill.wait { color:var(--amber); border-color:var(--amber); }
+  .banner { font-size:12px; color:var(--mut); margin:0 0 10px; word-break:break-all; }
+  .grid4 { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; }
+  .label { font-size:10px; letter-spacing:.1em; color:var(--mut); text-transform:uppercase; }
+  .value { font-size:19px; font-weight:700; margin-top:4px; font-variant-numeric:tabular-nums; }
+  .sub { font-size:11px; color:var(--mut); margin-top:2px; }
+  .pos { color:var(--green); } .neg { color:var(--red); }
+  h2 { font-size:11px; letter-spacing:.12em; color:var(--mut); margin:18px 2px 8px; text-transform:uppercase; }
+  .chart { width:100%; height:150px; display:block; }
+  .agents { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .agent { position:relative; overflow:hidden; }
+  .agent .top2 { display:flex; justify-content:space-between; font-size:10px; color:var(--mut); letter-spacing:.06em; }
+  .agent .name { font-weight:800; font-size:15px; margin-top:8px; }
+  .agent .detail { font-size:11px; color:var(--mut); margin-top:4px; min-height:30px; line-height:1.35; }
+  .tag { font-size:10px; font-weight:700; padding:1px 6px; border-radius:5px; }
+  .tag.idle { color:var(--mut); } .tag.run { color:var(--green); } .tag.block { color:var(--red); } .tag.warn { color:var(--amber); }
+  .agent.live { border-color:rgba(168,255,62,.45); }
+  .agent.live::after { content:""; position:absolute; left:-40%; top:0; bottom:0; width:40%;
+    background:linear-gradient(90deg,transparent,rgba(168,255,62,.12),transparent); animation:sweep 2.4s linear infinite; }
+  @keyframes sweep { to { left:110%; } }
+  .wrap { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums; }
+  th,td { text-align:left; padding:8px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--mut); font-weight:600; font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+  tr:last-child td { border-bottom:none; }
+  .buy { color:var(--green); } .sell { color:var(--red); }
+  .empty { padding:18px; color:var(--mut); text-align:center; font-size:13px; }
+  .err { background:rgba(255,93,108,.08); border:1px solid rgba(255,93,108,.35); color:var(--red);
+         border-radius:12px; padding:10px 12px; margin-bottom:10px; font-size:12px; word-break:break-word; }
+  .foot { font-size:11px; color:var(--mut); margin-top:16px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand">TRADE BOT</div>
+  <span id="mode" class="pill">TESTNET</span>
+</div>
+<div id="banner" class="banner"></div>
+<div id="err"></div>
+
+<div class="grid4">
+  <div class="card"><div class="label">Bakiye (USDT)</div><div class="value" id="bal">—</div><div class="sub">testnet hesabı</div></div>
+  <div class="card"><div class="label">Toplam K/Z</div><div class="value" id="pnl">—</div><div class="sub" id="pnlSub">gerçekleşen</div></div>
+  <div class="card"><div class="label">Son fiyat</div><div class="value" id="price">—</div><div class="sub" id="sym">—</div></div>
+  <div class="card"><div class="label">Açık pozisyon</div><div class="value" id="pos">—</div><div class="sub" id="posSub">—</div></div>
+</div>
+
+<h2>Kâr / zarar</h2>
+<div class="card"><canvas id="chart" class="chart"></canvas></div>
+
+<h2>Ajanlar</h2>
+<div class="agents" id="agents"></div>
+
+<h2>Son işlemler</h2>
+<div class="wrap">
+  <table>
+    <thead><tr><th>Zaman</th><th>Taraf</th><th>Fiyat</th><th>USDT</th><th>K/Z</th></tr></thead>
+    <tbody id="trades"></tbody>
+  </table>
+  <div id="noTrades" class="empty">Henüz işlem yok</div>
+</div>
+
+<div class="foot">Bu ekrandaki her rakam bot'un kendi kaydından gelir. Testnet sahte paradır, sonuçlar gerçek piyasayı yansıtmaz.</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = (n, d=2) => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString("tr-TR", {maximumFractionDigits:d, minimumFractionDigits:d});
+const hhmm = ts => ts ? new Date(ts).toLocaleString("tr-TR", {month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}) : "—";
+
+function agents(s, running) {
+  const risk = s.risk || {};
+  const sig = s.signal || "HOLD";
+  const blocked = risk.state === "BLOCKED", halted = risk.state === "HALTED";
+  const scanOn = running && sig !== "HOLD";
+  return [
+    { n:"SCAN",  code:"01", tag: sig==="HOLD" ? "idle" : "run", tl: sig==="HOLD" ? "BEKLİYOR" : sig, d: s.signal_reason || "Piyasa taranıyor", live: scanOn },
+    { n:"VET",   code:"02", tag:"idle", tl:"KURAL", d:"Sinyal kurallarla doğrulanıyor", live:false },
+    { n:"SIZE",  code:"03", tag: s.last_action ? "run":"idle", tl: s.last_action ? "SON" : "BEKLİYOR", d: s.last_action || "Sabit tutar", live:false },
+    { n:"RISK",  code:"04", tag: halted ? "block" : blocked ? "warn" : "run", tl: risk.state || "ACTIVE", d: risk.reason || "Limitler içinde", live:false },
+    { n:"FILLS", code:"05", tag:"idle", tl: (s.trades && s.trades.length) ? "SON " + s.trades[0].side : "BEKLİYOR", d:"Emir gerçekleşme takibi", live:false },
+    { n:"BOOK",  code:"06", tag: s.last_error ? "block" : "run", tl: s.last_error ? "HATA" : "OK", d: s.last_error || "Defter güncel", live:false },
+  ];
+}
+
+function drawChart(series) {
+  const c = $("chart"), dpr = devicePixelRatio || 1;
+  const W = c.clientWidth, H = c.clientHeight;
+  c.width = W * dpr; c.height = H * dpr;
+  const g = c.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,W,H);
+  if (!series || !series.length) {
+    g.fillStyle = "#6b7686"; g.font = "13px system-ui"; g.textAlign = "center";
+    g.fillText("Henüz gerçekleşen işlem yok", W/2, H/2); return;
+  }
+  const vals = series.map(p => p.cum_pnl);
+  const min = Math.min(0, ...vals), max = Math.max(0, ...vals), span = (max-min) || 1;
+  const x = i => series.length === 1 ? W/2 : 6 + (i/(series.length-1))*(W-12);
+  const y = v => H - 10 - ((v-min)/span)*(H-20);
+  // sıfır çizgisi
+  g.strokeStyle = "#2a3340"; g.setLineDash([4,4]); g.beginPath(); g.moveTo(0,y(0)); g.lineTo(W,y(0)); g.stroke(); g.setLineDash([]);
+  const last = vals[vals.length-1], col = last >= 0 ? "#a8ff3e" : "#ff5d6c";
+  // dolgu
+  g.beginPath(); vals.forEach((v,i)=> i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
+  g.lineTo(x(vals.length-1), y(0)); g.lineTo(x(0), y(0)); g.closePath();
+  g.fillStyle = last >= 0 ? "rgba(168,255,62,.10)" : "rgba(255,93,108,.10)"; g.fill();
+  // çizgi
+  g.strokeStyle = col; g.lineWidth = 2; g.beginPath();
+  vals.forEach((v,i)=> i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v))); g.stroke();
+}
+
+function render(d) {
+  const s = d.status || {};
+  const run = d.run || {};
+  const trades = d.trades || s.trades || [];
+  const series = d.pnl_series || s.pnl_series || [];
+  $("err").innerHTML = s.last_error ? `<div class="err">Son hata: ${s.last_error}</div>` : "";
+
+  // Üst durum
+  const runState = run.state || "";
+  const running = /çalışıyor/i.test(runState);
+  const waiting = /sırada/i.test(runState);
+  const failed = /hata|iptal/i.test(runState);
+  const pill = $("mode");
+  pill.textContent = running ? "ÇALIŞIYOR" : waiting ? "SIRADA" : failed ? "DURDU" : "HAZIR";
+  pill.className = "pill " + (running ? "run" : waiting ? "wait" : failed ? "bad" : "");
+  $("banner").textContent = [runState, run.detail].filter(Boolean).join(" · ");
+
+  // Kartlar
+  $("bal").textContent = s.balance_usdt != null ? fmt(s.balance_usdt) : "—";
+  const total = series.length ? series[series.length-1].cum_pnl : 0;
+  const pe = $("pnl"); pe.textContent = (total>=0?"+":"") + fmt(total) + " $";
+  pe.className = "value " + (total >= 0 ? "pos" : "neg");
+  $("pnlSub").textContent = series.length ? series.length + " kapanmış işlem" : "gerçekleşen";
+  $("price").textContent = fmt(s.price, 2);
+  $("sym").textContent = (trades[0] && trades[0].symbol) || "BTCUSDT";
+  $("pos").textContent = s.in_position ? fmt(s.position_qty, 6) : "Yok";
+  $("posSub").textContent = s.in_position ? "açık" : "pozisyon yok";
+
+  drawChart(series);
+
+  $("agents").innerHTML = agents(s, running).map(a =>
+    `<div class="card agent ${a.live ? "live" : ""}">
+       <div class="top2"><span>${a.code} · ${a.n}</span><span class="tag ${a.tag}">${a.tl}</span></div>
+       <div class="name">${a.n}</div><div class="detail">${a.d}</div>
+     </div>`).join("");
+
+  const rows = trades.map(t => {
+    const p = t.realized_pnl;
+    return `<tr><td>${hhmm(t.ts)}</td><td class="${t.side==='BUY'?'buy':'sell'}">${t.side==='BUY'?'AL':'SAT'}</td>
+      <td>${fmt(t.price,2)}</td><td>${fmt(t.quote_usdt,2)}</td>
+      <td class="${p>0?'pos':p<0?'neg':''}">${p ? fmt(p,4) : "—"}</td></tr>`;
+  }).join("");
+  $("trades").innerHTML = rows;
+  $("noTrades").style.display = trades.length ? "none" : "block";
+}
+
+window.render = render;
+// Tarayıcıda test için: aynı arayüz, veri yoksa boş durum
+render({ status:{}, run:{state:"Henüz veri yok", detail:""}, trades:[], pnl_series:[] });
+addEventListener("resize", () => render(window.__last || {status:{}, run:{}, trades:[], pnl_series:[]}));
+const _r = render; window.render = d => { window.__last = d; _r(d); };
+</script>
+</body>
+</html>

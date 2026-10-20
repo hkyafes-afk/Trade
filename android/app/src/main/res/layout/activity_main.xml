@@ -1,119 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0D0F12"
-    android:fillViewport="true">
+    android:orientation="vertical"
+    android:background="#07090C">
+
+    <WebView
+        android:id="@+id/dash"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="10dp"
+        android:background="#0F1319">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Trade Bot"
-            android:textColor="#E6E9EE"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Testnet · sahte para"
-            android:textColor="#7C8594"
-            android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/runState"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:textColor="#E6E9EE"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:text="Durum yükleniyor..." />
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/runDetail"
+            <Button
+                android:id="@+id/runBot"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="5,5 saat çalıştır"
+                android:textColor="#A8FF3E"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/testRun"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="1 dk test"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/refresh"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Yenile"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textColor="#7C8594"
-            android:textSize="13sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <Button
-            android:id="@+id/runBot"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Botu çalıştır (5,5 saat)"
-            android:textColor="#A8FF3E" />
+            <EditText
+                android:id="@+id/token"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="GitHub token"
+                android:inputType="textPassword"
+                android:textColor="#E8ECF2"
+                android:textColorHint="#4A5160"
+                android:textSize="12sp" />
 
-        <Button
-            android:id="@+id/testRun"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Test çalıştırması (1 dakika)" />
-
-        <Button
-            android:id="@+id/refresh"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Durumu yenile" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="BOT VERİSİ"
-            android:textColor="#7C8594"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/botData"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textColor="#E6E9EE"
-            android:textSize="14sp"
-            android:text="Henüz veri yok. Bot bir çalışmayı bitirince burada görünür." />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="GITHUB TOKEN"
-            android:textColor="#7C8594"
-            android:textSize="11sp" />
-
-        <EditText
-            android:id="@+id/token"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="github_pat_... (sadece bu repo için)"
-            android:inputType="textPassword"
-            android:textColor="#E6E9EE"
-            android:textColorHint="#4A5160" />
-
-        <Button
-            android:id="@+id/saveToken"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Token'ı kaydet" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Bot GitHub'da çalışır ve süre dolunca durur. Açık pozisyonlar bot çalışmıyorken korunmaz. Sadece testnet."
-            android:textColor="#7C8594"
-            android:textSize="12sp" />
+            <Button
+                android:id="@+id/saveToken"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kaydet"
+                android:textSize="12sp" />
+        </LinearLayout>
     </LinearLayout>
-</ScrollView>
+</LinearLayout>
