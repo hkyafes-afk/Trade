@@ -56,6 +56,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.runBot).setOnClickListener { dispatch("330") }
         findViewById<Button>(R.id.testRun).setOnClickListener { dispatch("1") }
         findViewById<Button>(R.id.refresh).setOnClickListener { refresh() }
+        findViewById<Button>(R.id.demo).setOnClickListener {
+            toast("Demo verisi: gerçek değil")
+            web.evaluateJavascript("window.renderDemo && window.renderDemo();", null)
+        }
 
         refresh()
     }

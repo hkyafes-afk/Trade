@@ -193,6 +193,32 @@ window.render = render;
 // Tarayıcıda test için: aynı arayüz, veri yoksa boş durum
 render({ status:{}, run:{state:"Henüz veri yok", detail:""}, trades:[], pnl_series:[] });
 addEventListener("resize", () => render(window.__last || {status:{}, run:{}, trades:[], pnl_series:[]}));
+
+// DEMO: sadece arayüzü denemek için örnek veri. Gerçek değildir, her yerde etiketlenir.
+window.renderDemo = function () {
+  const now = Date.now(), m = 60000;
+  const trades = [
+    {ts:new Date(now-40*m).toISOString(), symbol:"BTCUSDT", side:"BUY",  price:65010.5, quote_usdt:20, realized_pnl:0,     mode:"demo"},
+    {ts:new Date(now-30*m).toISOString(), symbol:"BTCUSDT", side:"SELL", price:65140.2, quote_usdt:20, realized_pnl:0.40,  mode:"demo"},
+    {ts:new Date(now-18*m).toISOString(), symbol:"BTCUSDT", side:"BUY",  price:65090.0, quote_usdt:20, realized_pnl:0,     mode:"demo"},
+    {ts:new Date(now-6*m).toISOString(),  symbol:"BTCUSDT", side:"SELL", price:65030.8, quote_usdt:20, realized_pnl:-0.12, mode:"demo"}
+  ].reverse();
+  const series = [
+    {ts:trades[3].ts, cum_pnl:0.00}, {ts:trades[2].ts, cum_pnl:0.40}, {ts:trades[1].ts, cum_pnl:0.28}
+  ];
+  window.render({
+    run: {state: "DEMO VERİ · GERÇEK DEĞİL", detail: "Bu ekran sadece arayüzü göstermek için örnek rakamlar kullanıyor."},
+    trades: trades,
+    pnl_series: series,
+    status: {
+      updated: new Date(now).toISOString(), price: 65045.3, balance_usdt: 1000.00,
+      in_position: false, position_qty: 0, signal: "HOLD", signal_reason: "Demo: sinyal yok",
+      last_action: "Demo: son emir 20 USDT", risk: {state:"ACTIVE", reason:"Demo"}, last_error: null,
+      config: {symbol:"BTCUSDT", interval:"1m", fast_ma:10, slow_ma:30, max_order_usdt:20,
+               max_daily_loss_usdt:10, max_position_usdt:50, dry_run:true}
+    }
+  });
+};
 const _r = render; window.render = d => { window.__last = d; _r(d); };
 </script>
 </body>
