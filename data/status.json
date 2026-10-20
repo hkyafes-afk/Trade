@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-20T00:17:58.611914+00:00",
+  "updated": "2026-10-20T00:20:12.854909+00:00",
   "price": null,
   "in_position": false,
   "position_qty": 0.0,
@@ -20,8 +20,5 @@
     "max_daily_loss_usdt": 10.0,
     "max_position_usdt": 50.0,
     "dry_run": true
-  },
-  "trades": [],
-  "pnl_series": [],
-  "balance_usdt": null
+  }
 }
