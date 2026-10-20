@@ -26,6 +26,7 @@
   h2 { font-size:11px; letter-spacing:.12em; color:var(--mut); margin:18px 2px 8px; text-transform:uppercase; }
   .chart { width:100%; height:150px; display:block; }
   .agents { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  @media (min-width:700px){ .agents{ grid-template-columns:repeat(4,1fr);} }
   .agent { position:relative; overflow:hidden; }
   .agent .top2 { display:flex; justify-content:space-between; font-size:10px; color:var(--mut); letter-spacing:.06em; }
   .agent .name { font-weight:800; font-size:15px; margin-top:8px; }
@@ -78,6 +79,9 @@
   <div id="noTrades" class="empty">Henüz işlem yok</div>
 </div>
 
+<h2>Bot ayarları</h2>
+<div class="card" id="cfgBox" style="font-size:12px;line-height:1.9;color:var(--mut)">Veri bekleniyor</div>
+
 <div class="foot">Bu ekrandaki her rakam bot'un kendi kaydından gelir. Testnet sahte paradır, sonuçlar gerçek piyasayı yansıtmaz.</div>
 
 <script>
@@ -85,18 +89,21 @@ const $ = id => document.getElementById(id);
 const fmt = (n, d=2) => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString("tr-TR", {maximumFractionDigits:d, minimumFractionDigits:d});
 const hhmm = ts => ts ? new Date(ts).toLocaleString("tr-TR", {month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}) : "—";
 
-function agents(s, running) {
+function agents(s, running, trades, cfg) {
   const risk = s.risk || {};
   const sig = s.signal || "HOLD";
-  const blocked = risk.state === "BLOCKED", halted = risk.state === "HALTED";
-  const scanOn = running && sig !== "HOLD";
+  const t0 = trades && trades[0];
+  const halted = risk.state === "HALTED", blocked = risk.state === "BLOCKED";
+  const mode = cfg.dry_run === false ? "TESTNET" : "SİMÜLASYON";
   return [
-    { n:"SCAN",  code:"01", tag: sig==="HOLD" ? "idle" : "run", tl: sig==="HOLD" ? "BEKLİYOR" : sig, d: s.signal_reason || "Piyasa taranıyor", live: scanOn },
-    { n:"VET",   code:"02", tag:"idle", tl:"KURAL", d:"Sinyal kurallarla doğrulanıyor", live:false },
-    { n:"SIZE",  code:"03", tag: s.last_action ? "run":"idle", tl: s.last_action ? "SON" : "BEKLİYOR", d: s.last_action || "Sabit tutar", live:false },
-    { n:"RISK",  code:"04", tag: halted ? "block" : blocked ? "warn" : "run", tl: risk.state || "ACTIVE", d: risk.reason || "Limitler içinde", live:false },
-    { n:"FILLS", code:"05", tag:"idle", tl: (s.trades && s.trades.length) ? "SON " + s.trades[0].side : "BEKLİYOR", d:"Emir gerçekleşme takibi", live:false },
-    { n:"BOOK",  code:"06", tag: s.last_error ? "block" : "run", tl: s.last_error ? "HATA" : "OK", d: s.last_error || "Defter güncel", live:false },
+    { n:"CHIEF",   tag: running ? "run" : "idle", tl: running ? "AKTİF" : "BEKLİYOR", d: "Mod: " + mode + " · " + (cfg.symbol || "—"), live: running },
+    { n:"SCAN",    tag: sig === "HOLD" ? "idle" : "run", tl: sig, d: s.signal_reason || "Piyasa taranıyor", live: running && sig !== "HOLD" },
+    { n:"VET",     tag:"idle", tl:"KURAL", d: "SMA " + (cfg.fast_ma||"—") + " / " + (cfg.slow_ma||"—") + " kesişimi", live:false },
+    { n:"QUANT",   tag:"idle", tl:"FİYAT", d: s.price ? "Son fiyat " + fmt(s.price,2) : "Veri bekleniyor", live:false },
+    { n:"SIZE",    tag: s.last_action ? "run" : "idle", tl: s.last_action ? "SON" : "BEKLİYOR", d: s.last_action || ("Emir üst sınırı " + fmt(cfg.max_order_usdt,0) + " USDT"), live:false },
+    { n:"FILLS",   tag:"idle", tl: (trades && trades.length) ? trades.length + " İŞLEM" : "BOŞ", d: t0 ? (t0.side === "BUY" ? "Son: alım" : "Son: satış") + " · " + fmt(t0.quote_usdt,2) + " USDT" : "Henüz gerçekleşen emir yok", live:false },
+    { n:"RISK",    tag: halted ? "block" : blocked ? "warn" : "run", tl: risk.state || "ACTIVE", d: risk.reason || ("Günlük kayıp sınırı " + fmt(cfg.max_daily_loss_usdt,0) + " USDT"), live:false },
+    { n:"CRAWLER", tag: s.last_error ? "block" : "run", tl: s.last_error ? "HATA" : "OK", d: s.last_error || (s.updated ? "Son güncelleme " + hhmm(s.updated) : "Veri bekleniyor"), live:false },
   ];
 }
 
@@ -131,6 +138,7 @@ function render(d) {
   const run = d.run || {};
   const trades = d.trades || s.trades || [];
   const series = d.pnl_series || s.pnl_series || [];
+  const cfg = s.config || {};
   $("err").innerHTML = s.last_error ? `<div class="err">Son hata: ${s.last_error}</div>` : "";
 
   // Üst durum
@@ -156,10 +164,10 @@ function render(d) {
 
   drawChart(series);
 
-  $("agents").innerHTML = agents(s, running).map(a =>
+  $("agents").innerHTML = agents(s, running, trades, cfg).map(a =>
     `<div class="card agent ${a.live ? "live" : ""}">
-       <div class="top2"><span>${a.code} · ${a.n}</span><span class="tag ${a.tag}">${a.tl}</span></div>
-       <div class="name">${a.n}</div><div class="detail">${a.d}</div>
+       <div class="top2"><span>${a.n}</span><span class="tag ${a.tag}">${a.tl}</span></div>
+       <div class="detail">${a.d}</div>
      </div>`).join("");
 
   const rows = trades.map(t => {
@@ -170,6 +178,15 @@ function render(d) {
   }).join("");
   $("trades").innerHTML = rows;
   $("noTrades").style.display = trades.length ? "none" : "block";
+  const c = cfg;
+  $("cfgBox").innerHTML = Object.keys(c).length ? [
+    ["Sembol", c.symbol], ["Mum aralığı", c.interval],
+    ["SMA hızlı / yavaş", c.fast_ma + " / " + c.slow_ma],
+    ["Emir üst sınırı", fmt(c.max_order_usdt,2) + " USDT"],
+    ["Günlük kayıp sınırı", fmt(c.max_daily_loss_usdt,2) + " USDT"],
+    ["Toplam pozisyon sınırı", fmt(c.max_position_usdt,2) + " USDT"],
+    ["Mod", c.dry_run === false ? "Testnet emirleri" : "Simülasyon (emir yok)"]
+  ].map(r => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line)"><span>${r[0]}</span><span style="color:var(--txt);font-variant-numeric:tabular-nums">${r[1]}</span></div>`).join("") : "Veri bekleniyor";
 }
 
 window.render = render;

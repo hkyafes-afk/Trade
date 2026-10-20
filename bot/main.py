@@ -91,6 +91,11 @@ def main():
     ledger = Ledger(s.db_path)
     gate = RiskGate(s.max_order_usdt, s.max_daily_loss_usdt, s.max_position_usdt, s.kill_switch_file)
     log.info("Başlatıldı: %s %s dry_run=%s", s.symbol, s.interval, s.dry_run)
+    STATUS["config"] = {
+        "symbol": s.symbol, "interval": s.interval, "fast_ma": s.fast_ma, "slow_ma": s.slow_ma,
+        "max_order_usdt": s.max_order_usdt, "max_daily_loss_usdt": s.max_daily_loss_usdt,
+        "max_position_usdt": s.max_position_usdt, "dry_run": s.dry_run,
+    }
 
     status_file = s.db_path.parent / "status.json"
     while True:
